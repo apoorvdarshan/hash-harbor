@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="A local torrent file inspector, streamer, and downloader."
+    />
+    <title>Hash Harbor</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Hash Harbor home">
+        <span class="brand-mark" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <span>
+          <strong>Hash Harbor</strong>
+          <small>Local torrent console</small>
+        </span>
+      </a>
+
+      <div class="top-actions">
+        <span class="local-badge"><i></i> Local only</span>
+        <button class="icon-button" id="themeButton" type="button" aria-label="Change color theme">
+          <span aria-hidden="true">◐</span>
+        </button>
+        <button class="stop-button" id="stopButton" type="button" hidden>
+          Stop &amp; clear
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="intake" aria-labelledby="intakeTitle">
+        <div class="intake-copy">
+          <p class="kicker">New arrival</p>
+          <h1 id="intakeTitle">Open a torrent at the waterline.</h1>
+          <p>Paste a full magnet link or a v1 info hash. Nothing is uploaded to a cloud service.</p>
+        </div>
+
+        <form id="torrentForm">
+          <label for="sourceInput">Magnet link or hash</label>
+          <div class="source-row">
+            <input
+              id="sourceInput"
+              name="source"
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="magnet:?xt=urn:btih:…"
+              required
+            />
+            <button class="open-button" id="openButton" type="submit">
+              <span>Open torrent</span>
+              <b aria-hidden="true">↗</b>
+            </button>
+          </div>
+          <label class="permission">
+            <input id="permissionInput" type="checkbox" required />
+            <span>I have permission to access and share these files.</span>
+          </label>
+          <p class="form-error" id="formError" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="empty-state" id="emptyState">
+        <div class="radar" aria-hidden="true">
+          <span class="radar-sweep"></span>
+          <i class="radar-dot one"></i>
+          <i class="radar-dot two"></i>
+          <i class="radar-dot three"></i>
+        </div>
+        <div>
+          <p class="kicker">Harbor is clear</p>
+          <h2>Waiting for a magnet.</h2>
+          <p>When metadata arrives, every file appears here with the right action: play, preview, or download.</p>
+        </div>
+      </section>
+
+      <section class="torrent-view" id="torrentView" hidden aria-live="polite">
+        <div class="torrent-heading">
+          <div class="title-block">
+            <p class="kicker" id="sessionStatus">Finding metadata</p>
+            <h2 id="torrentName">Reading metadata…</h2>
+            <code id="torrentHash"></code>
+          </div>
+          <strong class="percent" id="progressPercent">0%</strong>
+        </div>
+
+        <div class="progress-track" aria-label="Torrent download progress">
+          <span id="progressBar"></span>
+        </div>
+
+        <div class="telemetry">
+          <div>
+            <span>Peers</span>
+            <strong id="peerCount">0</strong>
+            <small>connected</small>
+          </div>
+          <div>
+            <span>Speed</span>
+            <strong id="downloadSpeed">0 B/s</strong>
+            <small>download</small>
+          </div>
+          <div>
+            <span>Received</span>
+            <strong id="downloadedSize">0 B</strong>
+            <small id="totalSize">of 0 B</small>
+          </div>
+          <div>
+            <span>Files</span>
+            <strong id="fileCount">—</strong>
+            <small>in torrent</small>
+          </div>
+        </div>
+
+        <div class="notice" id="notice" hidden>
+          <span aria-hidden="true">!</span>
+          <div>
+            <strong id="noticeTitle">Still searching</strong>
+            <p id="noticeBody"></p>
+          </div>
+        </div>
+
+        <section class="media-stage" id="mediaStage" hidden aria-label="Media player">
+          <div class="stage-bar">
+            <div>
+              <span>Now playing</span>
+              <strong id="mediaTitle"></strong>
+            </div>
+            <button id="closeMediaButton" type="button">Close player</button>
+          </div>
+          <div class="media-shell" id="mediaShell"></div>
+          <p class="media-message" id="mediaMessage"></p>
+        </section>
+
+        <section class="manifest" id="manifest" hidden>
+          <div class="manifest-heading">
+            <div>
+              <p class="kicker">Cargo manifest</p>
+              <h3>Files</h3>
+            </div>
+            <span id="manifestSummary"></span>
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </section>
+      </section>
+    </main>
+
+    <footer>
+      <span><i></i> 127.0.0.1:3000</span>
+      <span>Your public IP is visible to torrent peers. Use permitted files only.</span>
+    </footer>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
