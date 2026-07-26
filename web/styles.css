@@ -371,6 +371,8 @@ form > label:first-child {
 }
 
 .open-button {
+  --open-progress: 0%;
+  position: relative;
   min-width: 155px;
   padding: 0 17px 0 20px;
   border: 0;
@@ -385,13 +387,66 @@ form > label:first-child {
   font-weight: 800;
 }
 
+.open-button::after {
+  position: absolute;
+  z-index: 0;
+  right: auto;
+  bottom: 0;
+  left: 0;
+  width: var(--open-progress);
+  height: 3px;
+  background: var(--buoy);
+  content: "";
+  transition: width 420ms ease;
+}
+
+.open-button span,
+.open-button b {
+  position: relative;
+  z-index: 1;
+}
+
 .open-button b {
   font-size: 17px;
 }
 
 .open-button:disabled {
-  cursor: wait;
-  opacity: 0.55;
+  color: color-mix(in srgb, #07171b 78%, var(--channel));
+  background: color-mix(in srgb, var(--channel-bright) 68%, var(--panel));
+  cursor: default;
+  opacity: 1;
+}
+
+.open-button.is-working {
+  cursor: progress;
+}
+
+.open-button.is-working b {
+  width: 15px;
+  height: 15px;
+  border: 2px solid color-mix(in srgb, #07171b 26%, transparent);
+  border-top-color: #07171b;
+  border-radius: 50%;
+  animation: button-spin 720ms linear infinite;
+}
+
+.open-button.is-indeterminate::after {
+  width: 34%;
+  animation: button-scan 1.15s ease-in-out infinite;
+}
+
+.open-button.is-complete {
+  color: #061b16;
+  background: color-mix(in srgb, var(--success) 62%, var(--panel-strong));
+}
+
+@keyframes button-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes button-scan {
+  0% { transform: translateX(-105%); }
+  55%, 100% { transform: translateX(300%); }
 }
 
 .permission {

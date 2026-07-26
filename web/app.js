@@ -121,11 +121,63 @@ async function fetchJSON(url, options = {}) {
   return body;
 }
 
-function setBusy(busy) {
+function setBusy(busy, session = null) {
   elements.open.disabled = busy || Boolean(state.id);
   elements.source.disabled = Boolean(state.id);
   elements.permission.disabled = Boolean(state.id);
-  elements.open.querySelector("span").textContent = busy ? "Opening…" : state.id ? "Torrent open" : "Open torrent";
+
+  const active = Boolean(state.id);
+  const progress = Math.max(0, Math.min(100, (session?.progress || 0) * 100));
+  const status = session?.status || "";
+  let label = "Open torrent";
+  let working = false;
+  let indeterminate = false;
+  let complete = false;
+
+  if (busy) {
+    label = "Opening torrent…";
+    working = true;
+    indeterminate = true;
+  } else if (active) {
+    switch (status) {
+      case "finding metadata":
+        label = "Finding metadata…";
+        working = true;
+        indeterminate = true;
+        break;
+      case "finding peers":
+        label = progress > 0 ? `Finding peers · ${progress.toFixed(0)}%` : "Finding peers…";
+        working = true;
+        indeterminate = progress === 0;
+        break;
+      case "streaming":
+        label = `Streaming · ${progress.toFixed(0)}%`;
+        working = true;
+        break;
+      case "complete":
+        label = "Download complete";
+        complete = true;
+        break;
+      case "error":
+        label = "Torrent error";
+        break;
+      case "ready":
+        label = progress > 0 ? `Torrent ready · ${progress.toFixed(0)}%` : "Torrent ready";
+        break;
+      default:
+        label = "Preparing torrent…";
+        working = true;
+        indeterminate = true;
+    }
+  }
+
+  elements.open.querySelector("span").textContent = label;
+  elements.open.querySelector("b").textContent = working ? "" : complete ? "✓" : active ? "•" : "↗";
+  elements.open.classList.toggle("is-working", working);
+  elements.open.classList.toggle("is-indeterminate", indeterminate);
+  elements.open.classList.toggle("is-complete", complete);
+  elements.open.style.setProperty("--open-progress", `${progress}%`);
+  elements.open.setAttribute("aria-busy", String(working));
 }
 
 function showError(message) {
@@ -214,9 +266,9 @@ function renderSession(session) {
   elements.empty.hidden = true;
   elements.view.hidden = false;
   elements.stop.hidden = false;
-  setBusy(false);
 
   const percent = Math.max(0, Math.min(100, (session.progress || 0) * 100));
+  setBusy(false, session);
   elements.sessionStatus.textContent = statusLabel(session.status);
   elements.torrentName.textContent = session.name || "Reading metadata…";
   elements.torrentHash.textContent = session.id;
@@ -374,7 +426,7 @@ elements.form.addEventListener("submit", async (event) => {
   } catch (error) {
     showError(error.message);
   } finally {
-    setBusy(false);
+    if (!state.id) setBusy(false);
   }
 });
 

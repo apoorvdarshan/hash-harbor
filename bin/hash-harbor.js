@@ -284,6 +284,14 @@ function runLaunchctl(args, { ignoreFailure = false, quiet = false } = {}) {
   return result;
 }
 
+async function waitForServiceUnload(timeout = 5_000) {
+  const deadline = Date.now() + timeout;
+  while (serviceLoaded() && Date.now() < deadline) {
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
+  }
+  if (serviceLoaded()) throw new Error("the previous background service did not finish stopping");
+}
+
 async function installService() {
   if (platform() !== "darwin") {
     throw new Error("start-at-login installation currently supports macOS only");
@@ -347,7 +355,17 @@ async function installService() {
 
   const serviceTarget = `${launchDomain()}/${SERVICE_LABEL}`;
   runLaunchctl(["bootout", serviceTarget], { ignoreFailure: true, quiet: true });
-  runLaunchctl(["bootstrap", launchDomain(), launchAgentPath()]);
+  await waitForServiceUnload();
+  try {
+    runLaunchctl(["bootstrap", launchDomain(), launchAgentPath()]);
+  } catch (firstError) {
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 500));
+    try {
+      runLaunchctl(["bootstrap", launchDomain(), launchAgentPath()]);
+    } catch {
+      throw firstError;
+    }
+  }
   runLaunchctl(["kickstart", "-k", serviceTarget]);
   await waitForHealth(config.port);
   console.log(`Installed start-at-login service at ${localURL(config.port)}`);
