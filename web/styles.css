@@ -266,6 +266,7 @@ footer i {
   animation: status-blink 2.4s steps(1) infinite;
 }
 
+.social-button,
 .icon-button,
 .stop-button,
 .stage-bar button {
@@ -273,6 +274,47 @@ footer i {
   background: var(--panel);
   box-shadow: 3px 3px 0 var(--shadow);
   cursor: pointer;
+}
+
+.social-button {
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--phosphor);
+  font-family: var(--display);
+  font-size: 8px;
+  text-decoration: none;
+}
+
+.social-button .social-icon {
+  color: var(--magenta);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.social-button:hover {
+  border-color: var(--phosphor);
+  color: var(--void);
+  background: var(--phosphor);
+}
+
+.social-button:hover .social-icon {
+  color: var(--void);
+}
+
+.x-button {
+  color: var(--cyan);
+}
+
+.x-button .social-icon {
+  color: var(--cyan);
+}
+
+.kofi-button {
+  color: var(--magenta);
 }
 
 .icon-button {
@@ -1434,6 +1476,28 @@ footer b {
     width: 33px;
     height: 31px;
     font-size: 6px;
+  }
+
+  .social-button {
+    width: 31px;
+    min-height: 31px;
+    padding: 0;
+    justify-content: center;
+    font-size: 6px;
+  }
+
+  .social-button .social-icon {
+    font-size: 11px;
+  }
+
+  .social-button .social-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .stop-button {
