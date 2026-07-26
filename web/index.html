@@ -3,155 +3,200 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="color-scheme" content="dark" />
     <meta
       name="description"
       content="A local torrent file inspector, streamer, and downloader."
     />
-    <title>Hash Harbor</title>
+    <title>Hash Harbor // Local Torrent Terminal</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#sourceInput">Skip to torrent input</a>
+
     <header class="topbar">
       <a class="brand" href="/" aria-label="Hash Harbor home">
-        <span class="brand-mark" aria-hidden="true">
-          <i></i><i></i><i></i>
-        </span>
-        <span>
-          <strong>Hash Harbor</strong>
-          <small>Local torrent console</small>
+        <img src="/pixel-beacon.png" alt="" width="48" height="48" />
+        <span class="brand-copy">
+          <strong>HASH_HARBOR</strong>
+          <small>LOCAL SWARM TERMINAL // V1</small>
         </span>
       </a>
 
       <div class="top-actions">
-        <span class="local-badge"><i></i> Local only</span>
+        <span class="local-badge"><i></i> NODE_LOCAL</span>
         <button class="icon-button" id="settingsButton" type="button" aria-label="Local service settings">
-          <span aria-hidden="true">⌁</span>
+          <span aria-hidden="true">CFG</span>
         </button>
         <button class="icon-button" id="themeButton" type="button" aria-label="Change color theme">
-          <span aria-hidden="true">◐</span>
+          <span aria-hidden="true">PAL</span>
         </button>
         <button class="stop-button" id="stopButton" type="button" hidden>
-          Stop &amp; clear
+          [X] STOP SESSION
         </button>
       </div>
     </header>
 
     <main class="workspace">
-      <section class="intake" aria-labelledby="intakeTitle">
-        <div class="intake-copy">
-          <p class="kicker">New arrival</p>
-          <h1 id="intakeTitle">Open a torrent at the waterline.</h1>
-          <p>Paste a full magnet link or a v1 info hash. Nothing is uploaded to a cloud service.</p>
+      <section class="intake terminal-panel" aria-labelledby="intakeTitle">
+        <div class="panel-chrome" aria-hidden="true">
+          <span>INPUT_GATE</span>
+          <span class="chrome-dots">■ ■ □</span>
+          <span>PORT://3210</span>
         </div>
 
-        <form id="torrentForm">
-          <label for="sourceInput">Magnet link or hash</label>
-          <div class="source-row">
-            <input
-              id="sourceInput"
-              name="source"
-              type="text"
-              spellcheck="false"
-              autocomplete="off"
-              placeholder="magnet:?xt=urn:btih:…"
-              required
-            />
-            <button class="open-button" id="openButton" type="submit" aria-live="polite">
-              <span>Open torrent</span>
-              <b aria-hidden="true">↗</b>
-            </button>
+        <div class="intake-body">
+          <div class="intake-copy">
+            <p class="kicker">LOCAL PROTOCOL // 01</p>
+            <h1 id="intakeTitle">Drop the hash.<br /><em>Wake the swarm.</em></h1>
+            <p>
+              Paste a magnet link or v1 info hash. The engine runs on this machine;
+              nothing is uploaded to a cloud service.
+            </p>
+            <div class="signal-strip" aria-hidden="true">
+              <span>LOCAL</span><i></i><span>PRIVATE STORAGE</span><i></i><span>NO CLOUD</span>
+            </div>
           </div>
-          <label class="permission">
-            <input id="permissionInput" type="checkbox" required />
-            <span>I have permission to access and share these files.</span>
-          </label>
-          <p class="form-error" id="formError" role="alert"></p>
-        </form>
+
+          <form id="torrentForm">
+            <label for="sourceInput">[ MAGNET_URI / INFOHASH ]</label>
+            <div class="source-row">
+              <span class="prompt-mark" aria-hidden="true">&gt;_</span>
+              <input
+                id="sourceInput"
+                name="source"
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="magnet:?xt=urn:btih:…"
+                required
+              />
+              <button class="open-button" id="openButton" type="submit" aria-live="polite">
+                <span>OPEN TORRENT</span>
+                <b aria-hidden="true">↗</b>
+              </button>
+            </div>
+            <div class="form-meta">
+              <label class="permission">
+                <input id="permissionInput" type="checkbox" required />
+                <span>I have permission to access and share these files.</span>
+              </label>
+              <span class="input-hint" aria-hidden="true">ENTER // EXECUTE</span>
+            </div>
+            <p class="form-error" id="formError" role="alert"></p>
+          </form>
+        </div>
       </section>
 
-      <section class="empty-state" id="emptyState">
-        <div class="radar" aria-hidden="true">
-          <span class="radar-sweep"></span>
-          <i class="radar-dot one"></i>
-          <i class="radar-dot two"></i>
-          <i class="radar-dot three"></i>
+      <section class="empty-state terminal-panel" id="emptyState">
+        <div class="panel-chrome" aria-hidden="true">
+          <span>SWARM_MONITOR</span>
+          <span>IDLE_SCAN</span>
+          <span>00:00:00</span>
         </div>
-        <div>
-          <p class="kicker">Harbor is clear</p>
-          <h2>Waiting for a magnet.</h2>
-          <p>When metadata arrives, every file appears here with the right action: play, preview, or download.</p>
+        <div class="empty-body">
+          <div class="ghost-console" aria-hidden="true">
+            <span class="target-ring ring-one"></span>
+            <span class="target-ring ring-two"></span>
+            <span class="scan-line"></span>
+            <img src="/pixel-ghost-harbor.png" alt="" width="256" height="256" />
+            <span class="pixel-readout">SIGNAL: --</span>
+          </div>
+          <div class="empty-copy">
+            <p class="kicker">HARBOR STATUS // CLEAR</p>
+            <h2>Waiting for a signal<span class="cursor" aria-hidden="true">_</span></h2>
+            <p>
+              Open a torrent to inspect its files. Play supported media in place,
+              or save any file to disk.
+            </p>
+            <dl class="idle-specs">
+              <div><dt>ENGINE</dt><dd>READY</dd></div>
+              <div><dt>SESSION</dt><dd>NONE</dd></div>
+              <div><dt>STORAGE</dt><dd>LOCAL</dd></div>
+            </dl>
+          </div>
         </div>
       </section>
 
-      <section class="torrent-view" id="torrentView" hidden aria-live="polite">
-        <div class="torrent-heading">
-          <div class="title-block">
-            <p class="kicker" id="sessionStatus">Finding metadata</p>
-            <h2 id="torrentName">Reading metadata…</h2>
-            <code id="torrentHash"></code>
-          </div>
-          <strong class="percent" id="progressPercent">0%</strong>
+      <section class="torrent-view terminal-panel" id="torrentView" hidden aria-live="polite">
+        <div class="panel-chrome" aria-hidden="true">
+          <span>ACTIVE_SESSION</span>
+          <span>LIVE TELEMETRY</span>
+          <span>RX/TX</span>
         </div>
 
-        <div class="progress-track" aria-label="Torrent download progress">
-          <span id="progressBar"></span>
-        </div>
-
-        <div class="telemetry">
-          <div>
-            <span>Peers</span>
-            <strong id="peerCount">0</strong>
-            <small>connected</small>
-          </div>
-          <div>
-            <span>Speed</span>
-            <strong id="downloadSpeed">0 B/s</strong>
-            <small>download</small>
-          </div>
-          <div>
-            <span>Received</span>
-            <strong id="downloadedSize">0 B</strong>
-            <small id="totalSize">of 0 B</small>
-          </div>
-          <div>
-            <span>Files</span>
-            <strong id="fileCount">—</strong>
-            <small>in torrent</small>
-          </div>
-        </div>
-
-        <div class="notice" id="notice" hidden>
-          <span aria-hidden="true">!</span>
-          <div>
-            <strong id="noticeTitle">Still searching</strong>
-            <p id="noticeBody"></p>
-          </div>
-        </div>
-
-        <section class="media-stage" id="mediaStage" hidden aria-label="Media player">
-          <div class="stage-bar">
-            <div>
-              <span>Now playing</span>
-              <strong id="mediaTitle"></strong>
+        <div class="torrent-body">
+          <div class="torrent-heading">
+            <div class="title-block">
+              <p class="kicker" id="sessionStatus">FINDING METADATA</p>
+              <h2 id="torrentName">Reading metadata…</h2>
+              <code id="torrentHash"></code>
             </div>
-            <button id="closeMediaButton" type="button">Close player</button>
-          </div>
-          <div class="media-shell" id="mediaShell"></div>
-          <p class="media-message" id="mediaMessage"></p>
-        </section>
-
-        <section class="manifest" id="manifest" hidden>
-          <div class="manifest-heading">
-            <div>
-              <p class="kicker">Cargo manifest</p>
-              <h3>Files</h3>
+            <div class="percent-block">
+              <span>TRANSFER</span>
+              <strong class="percent" id="progressPercent">0%</strong>
             </div>
-            <span id="manifestSummary"></span>
           </div>
-          <div class="file-list" id="fileList"></div>
-        </section>
+
+          <div class="progress-track" aria-label="Torrent download progress">
+            <span id="progressBar"></span>
+          </div>
+
+          <div class="telemetry">
+            <div>
+              <span>PEERS</span>
+              <strong id="peerCount">0</strong>
+              <small>CONNECTED</small>
+            </div>
+            <div>
+              <span>SPEED</span>
+              <strong id="downloadSpeed">0 B/s</strong>
+              <small>DOWNLOAD</small>
+            </div>
+            <div>
+              <span>RECEIVED</span>
+              <strong id="downloadedSize">0 B</strong>
+              <small id="totalSize">OF 0 B</small>
+            </div>
+            <div>
+              <span>FILES</span>
+              <strong id="fileCount">—</strong>
+              <small>IN TORRENT</small>
+            </div>
+          </div>
+
+          <div class="notice" id="notice" hidden>
+            <span aria-hidden="true">!</span>
+            <div>
+              <strong id="noticeTitle">Still searching</strong>
+              <p id="noticeBody"></p>
+            </div>
+          </div>
+
+          <section class="media-stage" id="mediaStage" hidden aria-label="Media player">
+            <div class="stage-bar">
+              <div>
+                <span>NOW PLAYING // LOCAL STREAM</span>
+                <strong id="mediaTitle"></strong>
+              </div>
+              <button id="closeMediaButton" type="button">[X] CLOSE PLAYER</button>
+            </div>
+            <div class="media-shell" id="mediaShell"></div>
+            <p class="media-message" id="mediaMessage"></p>
+          </section>
+
+          <section class="manifest" id="manifest" hidden>
+            <div class="manifest-heading">
+              <div>
+                <p class="kicker">PAYLOAD_INDEX</p>
+                <h3>FILES.DAT</h3>
+              </div>
+              <span id="manifestSummary"></span>
+            </div>
+            <div class="file-list" id="fileList"></div>
+          </section>
+        </div>
       </section>
     </main>
 
@@ -159,20 +204,22 @@
       <form class="settings-card" id="settingsForm">
         <div class="settings-heading">
           <div>
-            <p class="kicker">Local service</p>
-            <h2 id="settingsTitle">Permanent address</h2>
+            <p class="kicker">SYSTEM_CONFIG</p>
+            <h2 id="settingsTitle">Local address</h2>
           </div>
           <button class="dialog-close" id="settingsCloseButton" type="button" aria-label="Close settings">×</button>
         </div>
 
         <p class="settings-copy">
-          Hash Harbor keeps this port after restarts, so your browser bookmark stays valid.
+          Keep one predictable localhost address after restarts, so the bookmark
+          always returns to this terminal.
         </p>
 
         <label class="port-field" for="portInput">
-          <span>Localhost port</span>
+          <span>[ LOCALHOST_PORT ]</span>
           <span class="port-address">localhost:<output id="portPreview">3210</output></span>
           <input id="portInput" name="port" type="number" min="1024" max="65535" required />
+          <small>1024—65535 // CLICK TO EDIT</small>
         </label>
 
         <div class="service-state">
@@ -185,15 +232,15 @@
 
         <p class="settings-message" id="settingsMessage" role="status"></p>
         <div class="settings-actions">
-          <button id="resetPortButton" type="button">Use default 3210</button>
-          <button class="save-settings" id="saveSettingsButton" type="submit">Save address</button>
+          <button id="resetPortButton" type="button">RESET // 3210</button>
+          <button class="save-settings" id="saveSettingsButton" type="submit">SAVE ADDRESS</button>
         </div>
       </form>
     </dialog>
 
     <footer>
-      <span><i></i> <b id="localAddress">localhost</b></span>
-      <span>Your public IP is visible to torrent peers. Use permitted files only.</span>
+      <span><i></i> <b id="localAddress">localhost</b> // NODE ONLINE</span>
+      <span>PUBLIC IP VISIBLE TO PEERS // PERMITTED FILES ONLY</span>
     </footer>
 
     <script src="/app.js" defer></script>
