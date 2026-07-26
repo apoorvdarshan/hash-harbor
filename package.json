@@ -30,6 +30,6 @@
   "bugs": {
     "url": "https://github.com/apoorvdarshan/hash-harbor/issues"
   },
-  "homepage": "https://github.com/apoorvdarshan/hash-harbor#readme",
-  "license": "UNLICENSED"
+  "homepage": "https://hash-harbor.apoorvdarshan.com",
+  "license": "MIT"
 }
