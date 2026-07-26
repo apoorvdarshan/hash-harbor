@@ -418,6 +418,59 @@ form > label:first-child {
   font-weight: 700;
 }
 
+.storage-controls {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 12px;
+}
+
+.secondary-button,
+.text-button {
+  min-height: 35px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.secondary-button {
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel-strong);
+}
+
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  color: var(--channel);
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.storage-status {
+  color: var(--success);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.browser-note {
+  margin: 11px 0 0;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .empty-state {
   min-height: 280px;
   margin-top: 14px;
@@ -895,6 +948,11 @@ footer {
     border: 1px solid var(--line-strong);
     border-radius: 9px;
     background: var(--panel-strong);
+  }
+
+  .storage-controls {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .open-button {
