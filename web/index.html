@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="dark light" />
     <meta
       name="description"
-      content="A static, browser-only WebTorrent inspector, streamer, and downloader."
+      content="A local torrent file inspector, streamer, and downloader."
     />
     <title>Hash Harbor</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -20,17 +20,17 @@
         </span>
         <span>
           <strong>Hash Harbor</strong>
-          <small>Browser torrent console</small>
+          <small>Local torrent console</small>
         </span>
       </a>
 
       <div class="top-actions">
-        <span class="local-badge"><i></i> Browser engine</span>
+        <span class="local-badge"><i></i> Local only</span>
         <button class="icon-button" id="themeButton" type="button" aria-label="Change color theme">
           <span aria-hidden="true">◐</span>
         </button>
         <button class="stop-button" id="stopButton" type="button" hidden>
-          Stop session
+          Stop &amp; clear
         </button>
       </div>
     </header>
@@ -40,7 +40,7 @@
         <div class="intake-copy">
           <p class="kicker">New arrival</p>
           <h1 id="intakeTitle">Open a torrent at the waterline.</h1>
-          <p>WebTorrent runs inside this tab. Files stay in browser storage or a folder you choose—there is no torrent backend.</p>
+          <p>Paste a full magnet link or a v1 info hash. Nothing is uploaded to a cloud service.</p>
         </div>
 
         <form id="torrentForm">
@@ -64,18 +64,6 @@
             <input id="permissionInput" type="checkbox" required />
             <span>I have permission to access and share these files.</span>
           </label>
-          <div class="storage-controls">
-            <button class="secondary-button" id="folderButton" type="button">
-              Choose download folder
-            </button>
-            <span class="storage-status" id="storageStatus">Checking browser storage…</span>
-            <button class="text-button" id="demoButton" type="button">
-              Use legal browser demo
-            </button>
-          </div>
-          <p class="browser-note">
-            Browser-only mode supports WebRTC peers and CORS-enabled webseeds. Ordinary DHT, UDP, and TCP peers are unavailable.
-          </p>
           <p class="form-error" id="formError" role="alert"></p>
         </form>
       </section>
@@ -90,7 +78,7 @@
         <div>
           <p class="kicker">Harbor is clear</p>
           <h2>Waiting for a magnet.</h2>
-          <p>The page itself is the engine. Keep this tab open while streaming or downloading.</p>
+          <p>When metadata arrives, every file appears here with the right action: play, preview, or download.</p>
         </div>
       </section>
 
@@ -165,10 +153,10 @@
     </main>
 
     <footer>
-      <span><i></i> Static page · browser storage</span>
+      <span><i></i> 127.0.0.1:3000</span>
       <span>Your public IP is visible to torrent peers. Use permitted files only.</span>
     </footer>
 
-    <script type="module" src="/app.js"></script>
+    <script src="/app.js" defer></script>
   </body>
 </html>
