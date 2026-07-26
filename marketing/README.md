@@ -4,6 +4,14 @@ These screenshots were captured from the real local app at
 `http://localhost:3210` on July 27, 2026. They contain no private tokens,
 accounts, or personal files.
 
+## Logo files
+
+| File | Size | Suggested use |
+| --- | ---: | --- |
+| [`hash-harbor-product-hunt.png`](logos/hash-harbor-product-hunt.png) | 1024 × 1024 | Product Hunt, app listings, and high-resolution profiles |
+| [`hash-harbor-product-hunt-240.png`](logos/hash-harbor-product-hunt-240.png) | 240 × 240 | Small profile images and previews |
+| [`hash-harbor-logo.svg`](logos/hash-harbor-logo.svg) | Vector | Editable master |
+
 ## Screenshot library
 
 | File | Size | Suggested use |
