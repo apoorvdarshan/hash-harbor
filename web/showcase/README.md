@@ -20,16 +20,23 @@ Use a different port when needed:
 HASH_HARBOR_SHOWCASE_PORT=8080 npm run showcase
 ```
 
-## Cloudflare Pages (later)
+## Cloudflare Pages
 
-When the site is ready to deploy, use:
+Production: <https://hash-harbor.apoorvdarshan.com>
 
-- Framework preset: `None`
-- Build command: leave empty
+The Cloudflare Pages project `hash-harbor` is connected directly to
+`apoorvdarshan/hash-harbor` on GitHub:
+
+- Production branch: `main`
+- Build command: none
 - Build output directory: `web/showcase`
+- Build watch include path: `web/showcase/*`
+- Preview deployments: enabled for non-production branches
 
-The site does not need server functions, environment variables, or a torrent
-backend. The published page explains and links to the local `npx hash-harbor`
+Cloudflare automatically deploys commits that change this directory. Commits
+that only change files outside `web/showcase/` are skipped. No GitHub Actions
+workflow, repository secret, server function, or torrent backend is required.
+The published page explains and links to the local `npx hash-harbor`
 application; torrent transfers still run on each user’s computer.
 
 ## Assets
