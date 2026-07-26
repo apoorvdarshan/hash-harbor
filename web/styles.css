@@ -251,9 +251,26 @@ a:focus-visible {
   color: var(--channel);
 }
 
-.social-links a:last-child span,
-.footer-social-links a:last-child {
+.social-links .support-link span,
+.footer-social-links .support-link {
   color: var(--buoy);
+}
+
+.social-links .product-hunt-link span,
+.footer-social-links .product-hunt-link {
+  color: #ff6154;
+}
+
+.social-links .product-hunt-link span {
+  display: inline-grid;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  place-items: center;
+  background: #ff6154;
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .footer-social-links {
