@@ -5,6 +5,19 @@ const elements = {
   open: document.querySelector("#openButton"),
   stop: document.querySelector("#stopButton"),
   theme: document.querySelector("#themeButton"),
+  settings: document.querySelector("#settingsButton"),
+  settingsDialog: document.querySelector("#settingsDialog"),
+  settingsForm: document.querySelector("#settingsForm"),
+  settingsClose: document.querySelector("#settingsCloseButton"),
+  settingsMessage: document.querySelector("#settingsMessage"),
+  settingsSave: document.querySelector("#saveSettingsButton"),
+  resetPort: document.querySelector("#resetPortButton"),
+  portInput: document.querySelector("#portInput"),
+  portPreview: document.querySelector("#portPreview"),
+  serviceStateDot: document.querySelector("#serviceStateDot"),
+  serviceStateTitle: document.querySelector("#serviceStateTitle"),
+  serviceStateBody: document.querySelector("#serviceStateBody"),
+  localAddress: document.querySelector("#localAddress"),
   error: document.querySelector("#formError"),
   empty: document.querySelector("#emptyState"),
   view: document.querySelector("#torrentView"),
@@ -89,8 +102,13 @@ function statusLabel(status) {
   return labels[status] || status || "Working";
 }
 
-async function fetchJSON(url, options) {
-  const response = await fetch(url, options);
+async function fetchJSON(url, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  const headers = new Headers(options.headers || {});
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    headers.set("X-Hash-Harbor", "1");
+  }
+  const response = await fetch(url, { ...options, headers });
   let body = {};
   try {
     body = await response.json();
@@ -122,6 +140,37 @@ function setNotice(title, body, visible = true) {
 
 function clearNotice() {
   elements.notice.hidden = true;
+}
+
+function renderSettings(settings) {
+  elements.portInput.value = String(settings.port);
+  elements.portPreview.textContent = String(settings.port);
+  elements.localAddress.textContent = `localhost:${settings.port}`;
+  elements.serviceStateDot.classList.toggle("is-active", Boolean(settings.startAtLogin));
+  elements.serviceStateTitle.textContent = settings.startAtLogin
+    ? "Starts automatically after login"
+    : "Runs only when you start it";
+  elements.serviceStateBody.textContent = settings.startAtLogin
+    ? "The macOS background service will reclaim this saved address after a restart."
+    : "Run “npx hash-harbor install-service” once to keep this address available after login.";
+}
+
+async function loadSettings() {
+  const settings = await fetchJSON("/api/settings");
+  renderSettings(settings);
+  return settings;
+}
+
+async function openSettings() {
+  elements.settingsMessage.textContent = "";
+  if (!elements.settingsDialog.open) elements.settingsDialog.showModal();
+  try {
+    await loadSettings();
+    elements.portInput.focus();
+    elements.portInput.select();
+  } catch (error) {
+    elements.settingsMessage.textContent = error.message;
+  }
 }
 
 function renderFiles(files) {
@@ -354,6 +403,55 @@ elements.fileList.addEventListener("click", (event) => {
 
 elements.closeMedia.addEventListener("click", closeMedia);
 
+elements.settings.addEventListener("click", openSettings);
+
+elements.settingsClose.addEventListener("click", () => {
+  elements.settingsDialog.close();
+});
+
+elements.settingsDialog.addEventListener("click", (event) => {
+  if (event.target === elements.settingsDialog) elements.settingsDialog.close();
+});
+
+elements.portInput.addEventListener("input", () => {
+  elements.portPreview.textContent = elements.portInput.value || "—";
+  elements.settingsMessage.textContent = "";
+});
+
+elements.resetPort.addEventListener("click", () => {
+  elements.portInput.value = "3210";
+  elements.portPreview.textContent = "3210";
+  elements.portInput.focus();
+});
+
+elements.settingsForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const port = Number(elements.portInput.value);
+  elements.settingsMessage.textContent = "";
+  elements.settingsSave.disabled = true;
+  elements.settingsSave.textContent = "Checking port…";
+  try {
+    const result = await fetchJSON("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ port }),
+    });
+    renderSettings({ ...result, startAtLogin: elements.serviceStateDot.classList.contains("is-active") });
+    if (result.restarting) {
+      elements.settingsMessage.textContent = `Moving Hash Harbor to ${result.address}…`;
+      elements.settingsSave.textContent = "Restarting…";
+      window.setTimeout(() => window.location.assign(result.address), 900);
+      return;
+    }
+    elements.settingsMessage.textContent = "This bookmark address is already active.";
+  } catch (error) {
+    elements.settingsMessage.textContent = error.message;
+  } finally {
+    elements.settingsSave.disabled = false;
+    elements.settingsSave.textContent = "Save address";
+  }
+});
+
 elements.theme.addEventListener("click", () => {
   const current = document.documentElement.dataset.theme || "system";
   const next = current === "system" ? "dark" : current === "dark" ? "light" : "system";
@@ -372,6 +470,7 @@ async function initialize() {
   elements.theme.title = `Theme: ${savedTheme}`;
 
   try {
+    await loadSettings();
     const body = await fetchJSON("/api/torrents");
     const session = body.torrents?.[0];
     if (session) {

@@ -26,6 +26,9 @@
 
       <div class="top-actions">
         <span class="local-badge"><i></i> Local only</span>
+        <button class="icon-button" id="settingsButton" type="button" aria-label="Local service settings">
+          <span aria-hidden="true">⌁</span>
+        </button>
         <button class="icon-button" id="themeButton" type="button" aria-label="Change color theme">
           <span aria-hidden="true">◐</span>
         </button>
@@ -152,8 +155,44 @@
       </section>
     </main>
 
+    <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
+      <form class="settings-card" id="settingsForm">
+        <div class="settings-heading">
+          <div>
+            <p class="kicker">Local service</p>
+            <h2 id="settingsTitle">Permanent address</h2>
+          </div>
+          <button class="dialog-close" id="settingsCloseButton" type="button" aria-label="Close settings">×</button>
+        </div>
+
+        <p class="settings-copy">
+          Hash Harbor keeps this port after restarts, so your browser bookmark stays valid.
+        </p>
+
+        <label class="port-field" for="portInput">
+          <span>Localhost port</span>
+          <span class="port-address">localhost:<output id="portPreview">3210</output></span>
+          <input id="portInput" name="port" type="number" min="1024" max="65535" required />
+        </label>
+
+        <div class="service-state">
+          <span id="serviceStateDot"></span>
+          <div>
+            <strong id="serviceStateTitle">Checking start at login…</strong>
+            <p id="serviceStateBody"></p>
+          </div>
+        </div>
+
+        <p class="settings-message" id="settingsMessage" role="status"></p>
+        <div class="settings-actions">
+          <button id="resetPortButton" type="button">Use default 3210</button>
+          <button class="save-settings" id="saveSettingsButton" type="submit">Save address</button>
+        </div>
+      </form>
+    </dialog>
+
     <footer>
-      <span><i></i> 127.0.0.1:3000</span>
+      <span><i></i> <b id="localAddress">localhost</b></span>
       <span>Your public IP is visible to torrent peers. Use permitted files only.</span>
     </footer>
 

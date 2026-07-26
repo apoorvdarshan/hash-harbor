@@ -6,12 +6,15 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"mime"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -30,12 +33,13 @@ import (
 
 const (
 	host               = "127.0.0.1"
-	port               = 3000
 	maxBodyBytes       = 16_384
 	maxActiveTorrents  = 1
 	streamReadahead    = 32 << 20
 	transcodeReadahead = 64 << 20
 )
+
+var version = "dev"
 
 //go:embed web/*
 var webFiles embed.FS
@@ -155,12 +159,14 @@ type gateway struct {
 	dataRoot     string
 	metadataRoot string
 	ffmpegPath   string
+	config       *configStore
+	restart      chan struct{}
 
 	mu       sync.RWMutex
 	sessions map[string]*session
 }
 
-func newGateway(root string) (*gateway, error) {
+func newGateway(root string, config *configStore) (*gateway, error) {
 	dataRoot := filepath.Join(root, "work", "torrents")
 	metadataRoot := filepath.Join(root, "work", "metadata")
 	if err := os.MkdirAll(dataRoot, 0o755); err != nil {
@@ -174,6 +180,8 @@ func newGateway(root string) (*gateway, error) {
 		dataRoot:     dataRoot,
 		metadataRoot: metadataRoot,
 		ffmpegPath:   ffmpegPath,
+		config:       config,
+		restart:      make(chan struct{}, 1),
 		sessions:     make(map[string]*session),
 	}, nil
 }
@@ -607,12 +615,68 @@ func (g *gateway) handleAPI(response http.ResponseWriter, request *http.Request)
 		g.mu.RLock()
 		count := len(g.sessions)
 		g.mu.RUnlock()
+		config := g.config.current()
 		sendJSON(response, http.StatusOK, map[string]any{
 			"ok":             true,
 			"activeTorrents": count,
 			"engine":         "webtor-go",
+			"product":        "hash-harbor",
+			"version":        version,
+			"port":           config.Port,
 			"transcoding":    g.ffmpegPath != "",
 		})
+		return
+
+	case request.Method == http.MethodGet && request.URL.Path == "/api/settings":
+		config := g.config.current()
+		sendJSON(response, http.StatusOK, map[string]any{
+			"port":         config.Port,
+			"address":      fmt.Sprintf("http://localhost:%d", config.Port),
+			"startAtLogin": os.Getenv("HASH_HARBOR_SERVICE") == "1",
+		})
+		return
+
+	case request.Method == http.MethodPut && request.URL.Path == "/api/settings":
+		var body struct {
+			Port int `json:"port"`
+		}
+		if err := readJSON(request, &body); err != nil {
+			sendJSON(response, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := validatePort(body.Port); err != nil {
+			sendJSON(response, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		current := g.config.current()
+		if body.Port == current.Port {
+			sendJSON(response, http.StatusOK, map[string]any{
+				"port":       current.Port,
+				"address":    fmt.Sprintf("http://localhost:%d", current.Port),
+				"restarting": false,
+			})
+			return
+		}
+		if err := checkPortAvailable(body.Port); err != nil {
+			sendJSON(response, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := g.config.save(appConfig{Port: body.Port}); err != nil {
+			sendJSON(response, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		sendJSON(response, http.StatusAccepted, map[string]any{
+			"port":       body.Port,
+			"address":    fmt.Sprintf("http://localhost:%d", body.Port),
+			"restarting": true,
+		})
+		go func() {
+			time.Sleep(250 * time.Millisecond)
+			select {
+			case g.restart <- struct{}{}:
+			default:
+			}
+		}()
 		return
 
 	case request.Method == http.MethodGet && request.URL.Path == "/api/torrents":
@@ -743,12 +807,152 @@ func (g *gateway) close() {
 	}
 }
 
+func localRequestOnly(next http.Handler, port func() int) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		requestHost := request.Host
+		if hostName, _, err := net.SplitHostPort(requestHost); err == nil {
+			requestHost = hostName
+		}
+		requestHost = strings.Trim(requestHost, "[]")
+		if requestHost != "localhost" && requestHost != "127.0.0.1" && requestHost != "::1" {
+			http.Error(response, "Hash Harbor accepts localhost requests only.", http.StatusForbidden)
+			return
+		}
+
+		if origin := request.Header.Get("Origin"); origin != "" {
+			parsed, err := url.Parse(origin)
+			if err != nil {
+				http.Error(response, "Cross-origin requests are not allowed.", http.StatusForbidden)
+				return
+			}
+			originHost := parsed.Hostname()
+			originPort := parsed.Port()
+			if (originHost != "localhost" && originHost != "127.0.0.1" && originHost != "::1") ||
+				originPort != strconv.Itoa(port()) {
+				http.Error(response, "Cross-origin requests are not allowed.", http.StatusForbidden)
+				return
+			}
+		}
+
+		if strings.HasPrefix(request.URL.Path, "/api/") &&
+			request.Method != http.MethodGet &&
+			request.Method != http.MethodHead &&
+			request.Header.Get("X-Hash-Harbor") != "1" {
+			sendJSON(response, http.StatusForbidden, map[string]string{
+				"error": "Missing local request confirmation header.",
+			})
+			return
+		}
+		next.ServeHTTP(response, request)
+	})
+}
+
+func makeHandler(g *gateway, webRoot fs.FS) http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", g.handleAPI)
+	mux.HandleFunc("/api/", g.handleAPI)
+	mux.Handle("/", http.FileServer(http.FS(webRoot)))
+	return localRequestOnly(mux, func() int { return g.config.current().Port })
+}
+
+func run(g *gateway, webRoot fs.FS, signals <-chan os.Signal) error {
+	for {
+		config := g.config.current()
+		address := fmt.Sprintf("%s:%d", host, config.Port)
+		listener, err := net.Listen("tcp", address)
+		if err != nil {
+			return fmt.Errorf(
+				"localhost port %d is unavailable; run `hash-harbor config --port <port>`: %w",
+				config.Port,
+				err,
+			)
+		}
+		server := &http.Server{
+			Addr:              address,
+			Handler:           makeHandler(g, webRoot),
+			ReadHeaderTimeout: 10 * time.Second,
+			IdleTimeout:       2 * time.Minute,
+		}
+		serverDone := make(chan error, 1)
+		go func() {
+			serverDone <- server.Serve(listener)
+		}()
+
+		log.Printf("Hash Harbor: http://localhost:%d", config.Port)
+		log.Printf("Torrent engine: Webtor Go fork")
+		log.Printf("Torrent data: %s", g.dataRoot)
+		if g.ffmpegPath != "" {
+			log.Printf("Media conversion: %s", g.ffmpegPath)
+		} else {
+			log.Printf("Media conversion: unavailable (FFmpeg not found)")
+		}
+
+		select {
+		case <-signals:
+			log.Print("stopping Hash Harbor")
+			shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_ = server.Shutdown(shutdownContext)
+			cancel()
+			g.close()
+			return nil
+		case <-g.restart:
+			nextPort := g.config.current().Port
+			log.Printf("moving local address to http://localhost:%d", nextPort)
+			shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_ = server.Shutdown(shutdownContext)
+			cancel()
+			if serveErr := <-serverDone; serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				return serveErr
+			}
+		case serveErr := <-serverDone:
+			if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				return serveErr
+			}
+			return nil
+		}
+	}
+}
+
 func main() {
-	root, err := os.Getwd()
+	var configDirectory string
+	var dataDirectory string
+	var portOverride int
+	var showVersion bool
+	flag.StringVar(&configDirectory, "config-dir", "", "configuration directory")
+	flag.StringVar(&dataDirectory, "data-dir", "", "torrent data directory")
+	flag.IntVar(&portOverride, "port", 0, "localhost port override")
+	flag.BoolVar(&showVersion, "version", false, "print version")
+	flag.Parse()
+
+	if showVersion {
+		fmt.Println(version)
+		return
+	}
+
+	if configDirectory == "" {
+		var err error
+		configDirectory, err = defaultConfigDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	config, err := loadConfig(configDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
-	g, err := newGateway(root)
+	if portOverride != 0 {
+		if err := config.save(appConfig{Port: portOverride}); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if dataDirectory == "" {
+		if override := os.Getenv("HASH_HARBOR_DATA_DIR"); override != "" {
+			dataDirectory = override
+		} else {
+			dataDirectory = configDirectory
+		}
+	}
+	g, err := newGateway(dataDirectory, config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -757,38 +961,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", g.handleAPI)
-	mux.HandleFunc("/api/", g.handleAPI)
-	mux.Handle("/", http.FileServer(http.FS(webRoot)))
-
-	server := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", host, port),
-		Handler:           mux,
-		ReadHeaderTimeout: 10 * time.Second,
-		IdleTimeout:       2 * time.Minute,
-	}
-
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-signals
-		log.Print("stopping Hash Harbor")
-		shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = server.Shutdown(shutdownContext)
-		g.close()
-	}()
-
-	log.Printf("Hash Harbor: http://%s:%d", host, port)
-	log.Printf("Torrent engine: Webtor Go fork")
-	log.Printf("Torrent data: %s", g.dataRoot)
-	if g.ffmpegPath != "" {
-		log.Printf("Media conversion: %s", g.ffmpegPath)
-	} else {
-		log.Printf("Media conversion: unavailable (FFmpeg not found)")
-	}
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := run(g, webRoot, signals); err != nil {
 		log.Fatal(err)
 	}
 }
