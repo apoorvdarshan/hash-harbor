@@ -11,6 +11,7 @@
     "README.md"
   ],
   "scripts": {
+    "showcase": "node scripts/serve-showcase.mjs",
     "test": "node --test test/cli.test.js"
   },
   "engines": {
