@@ -1,9 +1,5 @@
 import WebTorrent from "webtorrent/dist/webtorrent.min.js";
-
-const WEBRTC_TRACKERS = [
-  "wss://tracker.openwebtorrent.com",
-  "wss://tracker.btorrent.xyz",
-];
+import { normalizeSource, WEBRTC_TRACKERS } from "./torrent-source.js";
 
 const LEGAL_DEMO =
   "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&tr=wss%3A%2F%2Ftracker.btorrent.xyz&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fsintel.torrent";
@@ -132,33 +128,6 @@ function setBusy(busy) {
     : active
       ? "Torrent open"
       : "Open torrent";
-}
-
-function normalizeSource(value) {
-  let source = String(value || "").trim();
-  if (!source) throw new Error("Paste a magnet link or BitTorrent v1 info hash.");
-  if (/^[a-f0-9]{40}$/i.test(source) || /^[a-z2-7]{32}$/i.test(source)) {
-    source = `magnet:?xt=urn:btih:${source}`;
-  }
-  if (!source.toLowerCase().startsWith("magnet:?")) {
-    throw new Error("Browser-only mode accepts a magnet link or BitTorrent v1 info hash.");
-  }
-
-  const magnet = new URL(source);
-  const hasInfoHash = magnet.searchParams
-    .getAll("xt")
-    .some((value) => /^urn:btih:(?:[a-f0-9]{40}|[a-z2-7]{32})$/i.test(value));
-  if (!hasInfoHash) {
-    throw new Error("This magnet does not contain a valid BitTorrent v1 info hash.");
-  }
-
-  const hasWebRTCTracker = magnet.searchParams
-    .getAll("tr")
-    .some((tracker) => tracker.toLowerCase().startsWith("wss://"));
-  if (!hasWebRTCTracker) {
-    WEBRTC_TRACKERS.forEach((tracker) => magnet.searchParams.append("tr", tracker));
-  }
-  return magnet.toString();
 }
 
 function torrentStatus(torrent) {
@@ -469,9 +438,10 @@ function attachTorrentEvents(torrent) {
     console.warn("[Hash Harbor torrent warning]", warning);
   });
   torrent.on("error", (error) => {
-    showError(error.message);
-    setNotice("Torrent error", error.message);
-    setBusy(false);
+    if (state.torrent === torrent) resetUI();
+    showError(`Torrent error: ${error.message}`);
+    elements.source.focus();
+    elements.source.select();
   });
 }
 
